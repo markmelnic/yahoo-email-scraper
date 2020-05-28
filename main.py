@@ -5,9 +5,11 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 import selenium.webdriver.chrome.options
+from datetime import datetime
 import random
 import time
 import csv
+import os
 
 # driver boot procedure
 def boot():
@@ -53,7 +55,7 @@ def loginProc(dv, username, password):
     loginPassword.send_keys(Keys.ENTER)
 
 # scraping function
-def scraper(dv):
+def scraper(dv, maindir, email_credentials):
     WebDriverWait(dv, 20).until(EC.visibility_of_all_elements_located)
     time.sleep(5)
     
@@ -65,57 +67,151 @@ def scraper(dv):
             path = "/html/body/div[1]/div/div[1]/div/div[2]/div/div[1]/nav/div/div[3]/div[1]/ul/li[" + str(i) + "]/a/span[1]"
             email = dv.find_element_by_xpath(path)
             emails_list.append(email)
-        except:
-            break
             
-    for email in emails_list:
-        filename = str(email.text) + ".csv"
-        WebDriverWait(dv, 20).until(EC.visibility_of_all_elements_located)
-        
-        email.click()
-        
-        WebDriverWait(dv, 20).until(EC.visibility_of_all_elements_located)
-        time.sleep(2)
-        
-        with open(filename, 'w', newline='') as mailFile:
-            csvWriter = csv.writer(mailFile)
-        
-            mails = []
-            i = 2
-            e = 0
-            while True:
-                try:
-                    i += 1
-                    path = "#mail-app-component > div.W_6D6F.D_F > div > div.D_F.ab_FT.em_N.ek_BB.iz_A.H_6D6F > div > div > div.W_6D6F.H_6D6F.cZ1RN91d_n.o_h.p_R.em_N.D_F > div > div.p_R.Z_0.iy_h.iz_A.W_6D6F.H_6D6F.k_w.em_N.c22hqzz_GN > ul > li:nth-child("+str(i)+") > a > div > div.D_F.o_h.ab_C.H_6D6F.a_3vhr3.em_qk.ej_0 > div.D_F.o_h.G_e.em_N > span"
-                    message = dv.find_element_by_css_selector(path)
-                    mail = message.get_attribute("title")
-                    mails.append(mail)
-                    csvWriter.writerow([str(mail)])
-                    
-                    message.click()
-                    time.sleep(3)
-                    goBack = dv.find_element_by_xpath("/html/body")
-                    goBack.send_keys(Keys.ESCAPE)
-                    time.sleep(2)
-                 
-                except:
-                    e += 1
-                    if e == 2:
-                        break
+            for email in emails_list:
+                filename = str(email.text) + ".csv"
+                WebDriverWait(dv, 20).until(EC.visibility_of_all_elements_located)
                 
-        mailFile.close()
+                email.click()
+                
+                WebDriverWait(dv, 20).until(EC.visibility_of_all_elements_located)
+                time.sleep(5)
+                '''
+                goBack = dv.find_element_by_xpath("/html/body")
+                for i in range(10): 
+                    goBack.send_keys(Keys.PAGE_DOWN)
+                    time.sleep(1)
+                '''
+                with open(filename, 'w', newline='') as mailFile:
+                    csvWriter = csv.writer(mailFile)
+                
+                    mails = []
+                    i = 2
+                    e = 0
+                    while True:
+                        goBack = dv.find_element_by_xpath("/html/body")
+                        goBack.send_keys(Keys.PAGE_DOWN)
+                        try:
+                            i += 1  
+                            path = "#mail-app-component > div.W_6D6F.D_F > div > div.D_F.ab_FT.em_N.ek_BB.iz_A.H_6D6F > div > div > div.W_6D6F.H_6D6F.cZ1RN91d_n.o_h.p_R.em_N.D_F > div > div.p_R.Z_0.iy_h.iz_A.W_6D6F.H_6D6F.k_w.em_N.c22hqzz_GN > ul > li:nth-child("+str(i)+") > a > div > div.D_F.o_h.ab_C.H_6D6F.a_3vhr3.em_qk.ej_0 > div.D_F.o_h.G_e.em_N > span"
+                            message = dv.find_element_by_css_selector(path)
+                            try:
+                                read_path = "#mail-app-component > div.W_6D6F.D_F > div > div.D_F.ab_FT.em_N.ek_BB.iz_A.H_6D6F > div > div > div.W_6D6F.H_6D6F.cZ1RN91d_n.o_h.p_R.em_N.D_F > div > div.p_R.Z_0.iy_h.iz_A.W_6D6F.H_6D6F.k_w.em_N.c22hqzz_GN > ul > li:nth-child("+str(i)+") > a > div > div.D_F.o_h.ab_C.H_6D6F.a_3vhr3.em_qk.ej_0 > span > button > svg"
+                                read_indicator = dv.find_element_by_css_selector(read_path)
+                                mail = message.get_attribute("title")
+                                mails.append(mail)
+                                csvWriter.writerow([str(mail)])
+                                
+                                message.click()
+                                time.sleep(5)
+                                goBack = dv.find_element_by_xpath("/html/body")
+                                goBack.send_keys(Keys.ESCAPE)
+                                time.sleep(3)
+                            except Exception:
+                                pass
+                        
+                        except Exception as EXC:
+                            #print(EXC)
+                            e = e + 1
+                            dv.execute_script("window.scrollTo(0, 10)")
+                            time.sleep(3)
+                            '''
+                            goBack = dv.find_element_by_xpath("/html/body")
+                            goBack.send_keys(Keys.PAGE_DOWN)
+                            '''
+                            if e == 20:
+                                e = 0
+                                break
+                        
+                mailFile.close()
+        except:
+            filename = str(email_credentials) + ".csv"
+            WebDriverWait(dv, 20).until(EC.visibility_of_all_elements_located)
+            time.sleep(5)
+            with open(filename, 'w', newline='') as mailFile:
+                csvWriter = csv.writer(mailFile)
+            
+                mails = []
+                i = 1
+                e = 0
+                while True:
+                    goBack = dv.find_element_by_xpath("/html/body")
+                    goBack.send_keys(Keys.PAGE_DOWN)
+                    try:
+                        i += 1
+                        path = "#mail-app-component > div.W_6D6F.D_F > div > div.D_F.ab_FT.em_N.ek_BB.iz_A.H_6D6F > div > div > div.W_6D6F.H_6D6F.cZ1RN91d_n.o_h.p_R.em_N.D_F > div > div.p_R.Z_0.iy_h.iz_A.W_6D6F.H_6D6F.k_w.em_N.c22hqzz_GN > ul > li:nth-child("+str(i)+") > a > div > div.D_F.o_h.ab_C.H_6D6F.a_3vhr3.em_qk.ej_0 > div.D_F.o_h.G_e.em_N > span"
+                        message = dv.find_element_by_css_selector(path)
+                        try:
+                            read_path = "#mail-app-component > div.W_6D6F.D_F > div > div.D_F.ab_FT.em_N.ek_BB.iz_A.H_6D6F > div > div > div.W_6D6F.H_6D6F.cZ1RN91d_n.o_h.p_R.em_N.D_F > div > div.p_R.Z_0.iy_h.iz_A.W_6D6F.H_6D6F.k_w.em_N.c22hqzz_GN > ul > li:nth-child("+str(i)+") > a > div > div.D_F.o_h.ab_C.H_6D6F.a_3vhr3.em_qk.ej_0 > span > button > svg"
+                            read_indicator = dv.find_element_by_css_selector(read_path)
+                            mail = message.get_attribute("title")
+                            mails.append(mail)
+                            csvWriter.writerow([str(mail)])
+                            
+                            message.click()
+                            time.sleep(5)
+                            goBack = dv.find_element_by_xpath("/html/body")
+                            goBack.send_keys(Keys.ESCAPE)
+                            time.sleep(3)
+                        except Exception as EXC:
+                            #print(EXC)
+                            pass
+                    
+                    except Exception as EXC:
+                        #print(EXC)
+                        e = e + 1
+                        dv.execute_script("window.scrollTo(0, 10)")
+                        time.sleep(3)
+                        '''
+                        goBack = dv.find_element_by_xpath("/html/body")
+                        goBack.send_keys(Keys.PAGE_DOWN)
+                        '''
+                        if e == 20:
+                            e = 0
+                            break
+                
+            mailFile.close()
+            break    
+    
+    os.chdir(maindir)
 
 
 
 if __name__ == '__main__':
-    dv = boot()
-    
     with open("credentials.txt", "r", newline = '') as credsFile:
         credentials = credsFile.read().splitlines()
         email = credentials[0]
         password = credentials[1]
-    print(credentials)
+    #print(credentials)
+    maindir = os.getcwd()
     
-    loginProc(dv, email, password)
-    
-    scraper(dv)
+    file_index = 0
+    restart = True
+    while restart:
+        for i in range(int(len(credentials) / 2)):
+            file_index += 1
+            dv = boot()
+            email = credentials[i*2]
+            password = credentials[i*2 + 1]
+
+            loginProc(dv, email, password)
+            
+            fname = str(datetime.now())
+            fname = fname.split(" ")
+            while True:
+                try:
+                    os.mkdir(fname[0])
+                    os.chdir("./"+fname[0])
+                    break
+                except Exception as EXC:
+                    #print(EXC)
+                    try:
+                        os.mkdir(fname[0]+" #"+str(file_index))
+                        os.chdir("./"+fname[0]+" #"+str(file_index))
+                        break
+                    except Exception as EXC:
+                        #print(EXC)
+                        None
+            
+            scraper(dv, maindir, email)
+            killb(dv)
